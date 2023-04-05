@@ -1,0 +1,7 @@
+engine: postgres  # or maria or mysql
+host: localhost   # host address
+port: 54322       # port for the host
+schema: sqlow     # database schema
+username: sqlow   # username to connect to the database. You'll likely need something with full privileges (passwords must be provided via CLI)
+options:          # any options for the connection string
+  sslmode: disable

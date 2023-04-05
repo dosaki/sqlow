@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  database:
+    image: mariadb
+    container_name: sqlow-maria
+    restart: always
+    ports:
+      - "33061:3306"
+    environment:
+      MARIADB_USER: sqlow
+      MARIADB_PASSWORD: sqlow
+      MARIADB_ROOT_PASSWORD: sqlow
+      MARIADB_DATABASE: sqlow

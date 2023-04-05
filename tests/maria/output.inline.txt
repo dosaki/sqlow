@@ -1,0 +1,9 @@
++----+---------------+----------------------------------+
+| id | name          | description                      |
++----+---------------+----------------------------------+
+|  2 | Make Juice    | Task type for Make Juice         |
+|  3 | Make Pizza    | Task type for Make Pizza         |
+|  4 | Make Sandwich | Task type for Make Sandwich      |
+|  5 | Make Burger   | Task type for Make Burger        |
+|  6 | Make Coffee   | Make some delicious black coffee |
++----+---------------+----------------------------------+

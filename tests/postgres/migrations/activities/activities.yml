@@ -1,0 +1,8 @@
+migrations:
+  - description: Ensure that activities exists and is initialised
+    check: SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename ='activities';
+    onNoResultsFile: init.sql
+
+  - description: Ensure that migration_month exists for activities
+    checkFile: add-month/check.sql
+    onFailFile: add-month/add-month.sql

@@ -1,0 +1,1 @@
+SELECT migration_month FROM activities;

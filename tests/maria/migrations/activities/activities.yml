@@ -1,0 +1,8 @@
+migrations:
+  - description: Ensure that activities exists and is initialised
+    check: show tables like 'activities';
+    onNoResultsFile: init.sql
+
+  - description: Ensure that migration_month exists for activities
+    checkFile: add-month/check.sql
+    onFailFile: add-month/add-month.sql

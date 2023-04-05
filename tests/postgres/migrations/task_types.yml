@@ -1,0 +1,34 @@
+migrations:
+  - description: Ensure that task_types exists and is initialised
+    check: SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename ='task_types';
+    onNoResults:
+      - >
+        CREATE TABLE task_types (
+          id          SERIAL PRIMARY KEY,
+          category    VARCHAR(255),
+          name        VARCHAR(255)
+        );
+      - INSERT INTO task_types (category, name) VALUES ('drink', 'Make Tea');
+      - INSERT INTO task_types (category, name) VALUES ('drink', 'Make Juice');
+      - INSERT INTO task_types (category, name) VALUES ('food', 'Make Pizza');
+      - INSERT INTO task_types (category, name) VALUES ('food', 'Make Sandwich');
+      - INSERT INTO task_types (category, name) VALUES ('food', 'Make Burger');
+
+  - description: Ensure that description exists for task_types
+    check: SELECT description FROM task_types;
+    onFail:
+      - ALTER TABLE task_types ADD COLUMN description VARCHAR(1023);
+      - UPDATE task_types SET description = CONCAT('Task type for ', name);
+      - ALTER TABLE task_types ALTER COLUMN description SET NOT NULL;
+
+  - description: Ensure that task_types does not have a category
+    check: SELECT category FROM task_types;
+    onSuccess: ALTER TABLE task_types DROP COLUMN category;
+
+  - description: Ensure the "Make Coffee" task exists
+    check: SELECT * FROM task_types WHERE name = 'Make Coffee';
+    onNoResults: INSERT INTO task_types (name, description) VALUES ('Make Coffee', 'Make some delicious black coffee');
+
+  - description: Ensure the "Make Tea" task is absent
+    check: SELECT * FROM task_types WHERE name = 'Make Tea';
+    onResults: DELETE FROM task_types WHERE name = 'Make Tea';
