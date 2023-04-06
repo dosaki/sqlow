@@ -1,3 +1,4 @@
+<div align="center"><img src="./icon.svg" /></div>
 <h1 align="center">Sqlow</h1>
 
 _**pronounced Squallow** - a mix of Swallow (the migratory bird) and SQL_
