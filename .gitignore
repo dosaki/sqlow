@@ -1,2 +1,4 @@
 .idea
 dist
+output*.txt
+.DS_Store

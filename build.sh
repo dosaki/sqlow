@@ -48,6 +48,7 @@ for i in "$@"; do
 done
 
 if [[ "${DO_ALL}" == "true" ]]; then
+  rm -rf ./dist
   ./build.sh --windows
   ./build.sh --linux
   ./build.sh --macos
@@ -55,4 +56,8 @@ if [[ "${DO_ALL}" == "true" ]]; then
 else
   mkdir -p dist/${GOOS}-${GOARCH}
   go build -o dist/${GOOS}-${GOARCH}/${EXECUTABLE_NAME} main.go
+  pushd dist/${GOOS}-${GOARCH}/ > /dev/null 2>&1
+  cp ${DIR}/config.template.yml config.yml
+  zip -r "../${GOOS}-${GOARCH}.zip" ./* > /dev/null
+  popd > /dev/null 2>&1
 fi
