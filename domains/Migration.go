@@ -16,12 +16,14 @@ type Migration struct {
 	OnSuccess   []string `yaml:"onSuccess"`
 	OnNoResults []string `yaml:"onNoResults"`
 	OnResults   []string `yaml:"onResults"`
+	Always      []string `yaml:"always"`
 
 	CheckFile       string `yaml:"checkFile"`
 	OnFailFile      string `yaml:"onFailFile"`
 	OnSuccessFile   string `yaml:"onSuccessFile"`
 	OnNoResultsFile string `yaml:"onNoResultsFile"`
 	OnResultsFile   string `yaml:"onResultsFile"`
+	AlwaysFile      string `yaml:"alwaysFile"`
 }
 
 func (c *Migration) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -32,6 +34,7 @@ func (c *Migration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	c.OnSuccess = getValue("onSuccess", unmarshal)
 	c.OnNoResults = getValue("onNoResults", unmarshal)
 	c.OnResults = getValue("onResults", unmarshal)
+	c.Always = getValue("always", unmarshal)
 
 	if checkFile := getValue("checkFile", unmarshal); len(checkFile) > 0 {
 		c.CheckFile = checkFile[0]
@@ -47,6 +50,9 @@ func (c *Migration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	if onResultsFile := getValue("onResultsFile", unmarshal); len(onResultsFile) > 0 {
 		c.OnResultsFile = onResultsFile[0]
+	}
+	if alwaysFile := getValue("alwaysFile", unmarshal); len(alwaysFile) > 0 {
+		c.AlwaysFile = alwaysFile[0]
 	}
 	return nil
 }
@@ -116,6 +122,12 @@ func (c *Migration) ResolveFiles(dir string) {
 		content, err := os.ReadFile(c.OnResultsFile)
 		helpers.CheckError(err)
 		c.OnResults = append(c.OnResults, string(content))
+	}
+	if c.AlwaysFile != "" {
+		c.AlwaysFile = filepath.Join(dir, c.AlwaysFile)
+		content, err := os.ReadFile(c.AlwaysFile)
+		helpers.CheckError(err)
+		c.Always = append(c.Always, string(content))
 	}
 }
 

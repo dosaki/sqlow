@@ -54,42 +54,65 @@ done
 
 RESULTS="Results:"
 
+function run_sql() {
+  engine="$1"
+  sql_command="$2"
+  output_name="$3"
+
+  if [[ "${engine}" == "postgres" ]]; then
+    docker exec -ti sqlow-${engine} psql -U sqlow sqlow -c "${sql_command}" > ${output_name}
+  elif [[ "${engine}" == "maria" ]]; then
+    docker exec -ti sqlow-maria mysql -usqlow -psqlow sqlow -e "${sql_command}" > ${output_name}
+  fi
+}
+
+function compare_to_expected() {
+  engine="$1"
+  which_test="$2"
+  diff --strip-trailing-cr "output.${which_test}.txt" "expected.${which_test}.txt" > /dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    echo "❌ ${engine} - ${which_test}"
+  else
+    echo "✅ ${engine} - ${which_test}"
+  fi
+}
+
+
+function matches_pattern() {
+  engine="$1"
+  which_test="$2"
+  pattern="$3"
+  cat "${DIR}/tests/${engine}/output.${which_test}.txt" | egrep "${pattern}" > /dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    echo "❌ ${engine} - ${which_test}"
+  else
+    echo "✅ ${engine} - ${which_test}"
+  fi
+}
+
+
 function run_for_engine() {
   engine="$1"
   cd ${DIR}/tests/${engine}/ || exit 1
   docker-compose up -d > /dev/null 2>&1
   sleep 5
   ${DIR}/dist/${GOOS}-${GOARCH}/${EXECUTABLE_NAME} -r -psqlow run ./migrations
-  if [[ "${engine}" == "postgres" ]]; then
-    docker exec -ti sqlow-${engine} psql -U sqlow sqlow -c "select * from task_types;" > output.inline.txt
-    docker exec -ti sqlow-${engine} psql -U sqlow sqlow -c "select * from activities;" > output.files.txt
-  elif [[ "${engine}" == "maria" ]]; then
-    docker exec -ti sqlow-maria mysql -usqlow -psqlow sqlow -e "select * from task_types;" > output.inline.txt
-    docker exec -ti sqlow-maria mysql -usqlow -psqlow sqlow -e "select * from activities;" > output.files.txt
-  fi
-
-  diff --strip-trailing-cr output.inline.txt expected.inline.txt > /dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    RESULTS="${RESULTS}\n ❌ ${engine} - Inline SQL"
-  else
-    RESULTS="${RESULTS}\n ✅ ${engine} - Inline SQL"
-  fi
-  diff --strip-trailing-cr output.files.txt expected.files.txt > /dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    RESULTS="${RESULTS}\n ❌ ${engine} - Files SQL"
-  else
-    RESULTS="${RESULTS}\n ✅ ${engine} - Files SQL"
-  fi
-#  rm output*.txt
+  run_sql "${engine}" "select * from task_types;" "output.inline.txt"
+  run_sql "${engine}" "select * from activities;" "output.files.txt"
+  run_sql "${engine}" "select * from latest_upgrade;" "output.always.txt"
+  RESULTS="${RESULTS}\n$(compare_to_expected ${engine} 'inline')"
+  RESULTS="${RESULTS}\n$(compare_to_expected ${engine} 'files')"
+  RESULTS="${RESULTS}\n$(matches_pattern ${engine} 'always' "[0-9]{4}-(10|11|12|0[1-9])-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")"
+  rm output*.txt
   docker-compose down
 }
+
 
 ./build.sh --${OPTION}
 
 if [[ "${ENGINE}" == "all" ]]; then
   run_for_engine "maria"
   run_for_engine "postgres"
-  #wait $(jobs -p)
 else
   run_for_engine "${ENGINE}"
 fi

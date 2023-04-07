@@ -1,0 +1,7 @@
+migrations:
+  - description: Timestamp upgrade
+    check: show tables like 'latest_upgrade';
+    onNoResults:
+      - CREATE TABLE latest_upgrade (date_time TIMESTAMP);
+      - INSERT INTO latest_upgrade (date_time) VALUES (now());
+    always: update latest_upgrade set date_time = now();
