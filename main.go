@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/docopt/docopt.go"
 	"log"
+	"os"
 	"sqlow/config"
 	"sqlow/io"
 	"sqlow/migrations"
@@ -10,10 +12,12 @@ import (
 )
 
 func main() {
-	usage := `sqlow
+	usage := "sqlow (version: " + config.VERSION + `)
 
 Usage:
   sqlow [options] -p<password> run <path>
+  sqlow --version
+  sqlow --help
 
 Options:
   -h --help                 Show this Help.
@@ -34,6 +38,12 @@ Examples:
   sqlow -r -c ./my-config.yml -udbuser -pSup4rS@f3P@ssw0rd run ./migrations/`
 
 	arguments, _ := docopt.ParseDoc(usage)
+	version, _ := arguments.Bool("--version")
+	if version {
+		fmt.Println("sqlow " + config.VERSION)
+		os.Exit(0)
+	}
+
 	path, _ := arguments.String("<path>")
 	isRecursive, _ := arguments.Bool("--recursive")
 	configPath, _ := arguments.String("--config")

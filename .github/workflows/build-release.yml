@@ -1,0 +1,130 @@
+name: build-release
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  create_release:
+    timeout-minutes: 1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: oprypin/find-latest-tag@v1
+        id: version
+        with:
+          repository: dosaki/sqlow
+
+      - name: Up the version
+        run: echo "RELEASE_VERSION=$(echo "${{ steps.version.outputs.tag }}" | awk -F'.' '{ print $1"."$2"."$3+1 }')" >> $GITHUB_ENV
+
+      - name: Create tag
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/${{ env.RELEASE_VERSION }}',
+              sha: context.sha
+            })
+
+      - uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.RELEASE_VERSION }}
+          name: Release ${{ env.RELEASE_VERSION }}
+          body: Todo - fill with changelog!
+          draft: true
+          updateOnlyUnreleased: true
+
+
+  build-windows:
+    timeout-minutes: 1
+    needs: create_release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get version
+        uses: oprypin/find-latest-tag@v1
+        id: version
+        with:
+          repository: dosaki/sqlow
+
+      - name: Build
+        run: ./build.sh --windows --version=${{ steps.version.outputs.tag }}
+
+      - uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          allowUpdates: true
+          draft: true
+          updateOnlyUnreleased: true
+          artifactErrorsFailBuild: true
+          artifacts: dist/windows-amd64.zip
+
+
+  build:
+    timeout-minutes: 1
+    needs: create_release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        arch: [ amd64, arm64 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set OS name
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            echo "OS_NAME=linux" >> $GITHUB_ENV
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            echo "OS_NAME=windows" >> $GITHUB_ENV
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            echo "OS_NAME=darwin" >> $GITHUB_ENV
+          fi
+
+      - name: Get version
+        uses: oprypin/find-latest-tag@v1
+        id: version
+        with:
+          repository: dosaki/sqlow
+
+      - name: Build
+        run: ./build.sh --default --version=${{ steps.version.outputs.tag }} --go-arch=${{ matrix.arch }}
+
+      - uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          allowUpdates: true
+          draft: true
+          updateOnlyUnreleased: true
+          artifactErrorsFailBuild: true
+          artifacts: dist/${{ env.OS_NAME }}-${{ matrix.arch }}.zip
+
+
+  publish_release:
+    timeout-minutes: 1
+    needs: [build, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get version
+        uses: oprypin/find-latest-tag@v1
+        id: version
+        with:
+          repository: dosaki/sqlow
+
+      - uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          allowUpdates: true
+          makeLatest: true
+          draft: false
