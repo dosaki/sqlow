@@ -71,6 +71,64 @@ Note:
 * `onFail` will always run before `onFailFile`!
 * `xxxFile` fields can only take a single string, not a list!
 
+### What if I still want versions?
+Versions might be useful if you want to run something once and never again and you might not have an easy way to check whether it's been done.
+
+You can do it with the methods below. If this is a common scenario for you, vote on issue [#2](https://github.com/dosaki/sqlow/issues/2).
+
+#### Actual versions
+First ensure there's a table to store the info:
+```yaml
+migrations:
+  - description: Ensure there's a migrations table
+    check: SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename ='migrations';
+    onNoResults:
+      - CREATE TABLE migrations (id int primary key, version int NOT NULL);
+      - INSERT INTO migrations (id, version) VALUES (1, 0);
+```
+
+... and then write your migrations:
+```yaml
+migrations:
+  - description: Do something once
+    check: select * from migrations where id = 1 and version < 1;
+    onResults:
+      - Some SQL here that you want to run once
+      - UPDATE migrations SET version = 1 WHERE id = 1;
+  - description: Do another thing once
+    check: select * from migrations where id = 1 and version < 2;
+    onResults:
+      - Another SQL here that you want to run once
+      - UPDATE migrations SET version = 2 WHERE id = 1;
+```
+
+#### Using something a little more descriptive
+First ensure there's a table to store the info:
+```yaml
+migrations:
+  - description: Ensure there's a migrations table
+    check: SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename ='migrations';
+    onNoResults:
+      - CREATE TABLE migrations (description varchar(255) NOT NULL);
+```
+
+... and then write your migrations:
+```yaml
+migrations:
+  - description: Do something once
+    check: select * from migrations where description = 'Do something once';
+    onNoResults:
+      - Some SQL here that you want to run once
+      - INSERT into migrations SET description = 'Do something once';
+  - description: Do another thing once
+    check: select * from migrations where description = 'Do another thing once';
+    onNoResults:
+      - Another SQL here that you want to run once
+      - INSERT into migrations SET description = 'Do another thing once';
+```
+
+I prefer this way since it acts as a nice human-readable log of which single-run migrations have taken effect.
+
 ## Help
 
 ```

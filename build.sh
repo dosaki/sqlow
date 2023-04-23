@@ -19,6 +19,8 @@ fi
 
 DO_ALL=false
 VERSION=$(cat ./config/version.go | tail -1 | tr '"' ' ' | awk '{print $4}')
+BUILD_ZIP=true
+OUTPUT_DIR="./dist/${GOOS}-${GOARCH}"
 
 for i in "$@"; do
   case $i in
@@ -58,6 +60,14 @@ for i in "$@"; do
     VERSION="${i#*=}"
     shift
     ;;
+  --no-zip=*)
+    BUILD_ZIP="false"
+    shift
+    ;;
+  --output=*)
+    OUTPUT_DIR="${i#*=}"
+    shift
+    ;;
   *)
     usage
     echo "Unknown option ${i}"
@@ -76,10 +86,13 @@ else
   mkdir -p dist/${GOOS}-${GOARCH}
   mv ./config/version.go ./config/version.tmp
   cat ./config/version.tmp | sed "s/development/${VERSION} ${GOOS}\/${GOARCH}/g" > ./config/version.go
-  go build -o dist/${GOOS}-${GOARCH}/${EXECUTABLE_NAME} main.go
+  go build -o "${OUTPUT_DIR}/${EXECUTABLE_NAME}" main.go
   mv ./config/version.tmp ./config/version.go
-  pushd dist/${GOOS}-${GOARCH}/ > /dev/null 2>&1
-  cp ${DIR}/config.template.yml config.yml
-  zip -r "../${GOOS}-${GOARCH}.zip" ./* > /dev/null
-  popd > /dev/null 2>&1
+
+  if [[ "${BUILD_ZIP}" == "true" ]]; then
+    pushd "${OUTPUT_DIR}/" > /dev/null 2>&1
+    cp ${DIR}/config.template.yml config.yml
+    zip -r "../${GOOS}-${GOARCH}.zip" ./* > /dev/null
+    popd > /dev/null 2>&1
+  fi
 fi

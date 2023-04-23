@@ -55,6 +55,7 @@ func (c *Config) WithOverrides(engine, host, port, schema, username, password, o
 			c.Options[splitPair[0]] = splitPair[1]
 		}
 	}
+	log.Println("Loaded CLI options.")
 	return config
 }
 
@@ -76,15 +77,24 @@ func (c *Config) MakeDriver() database.Driver {
 }
 
 func FromYAML(f string) *Config {
-	log.Printf("Getting config from %s...\n", f)
 	b, err := os.ReadFile(f)
-	helpers.CheckError(err)
-
+	helpers.CheckWarn(err)
+	if err != nil {
+		log.Println("Loaded default options.")
+		return &Config{
+			"postgres",
+			"localhost",
+			"5432",
+			"postgres",
+			"postgres",
+			"",
+			map[string]string{},
+		}
+	}
 	var c Config
 	err = yaml.Unmarshal(b, &c)
 	helpers.CheckError(err)
 
-	log.Printf("Got config from %s.\n", f)
-
+	log.Printf("Loaded config from %s.\n", f)
 	return &c
 }
