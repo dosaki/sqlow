@@ -1,0 +1,24 @@
+name: sqlow
+base: core20
+version: git
+summary: A CLI database schema migrator that doesn't care about versions
+description: |
+  Pronounced Squallow - a mix of Swallow (the migratory bird) and SQL.
+  A CLI database schema migrator that doesn't care about versions.
+
+grade: stable # must be 'stable' to release into candidate/stable channels
+confinement: strict # use 'strict' once you have the right plugs and slots
+
+apps:
+  sqlow:
+    command: bin/sqlow
+
+parts:
+  sqlow:
+    source: https://github.com/dosaki/sqlow/
+    source-type: git
+    plugin: go
+    override-build: |
+      VERSION="$(git describe --tags) $(go env GOOS)/$(go env GOARCH)"
+      go install --ldflags="-X \"main.VERSION=${VERSION}\" -linkmode=external" main.go
+

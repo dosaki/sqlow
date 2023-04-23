@@ -11,8 +11,10 @@ import (
 	"strings"
 )
 
+var VERSION = "development"
+
 func main() {
-	usage := "sqlow (version: " + config.VERSION + `)
+	usage := "sqlow (version: " + VERSION + `)
 
 Usage:
   sqlow [options] -p<password> run <path>
@@ -40,7 +42,7 @@ Examples:
 	arguments, _ := docopt.ParseDoc(usage)
 	version, _ := arguments.Bool("--version")
 	if version {
-		fmt.Println("sqlow " + config.VERSION)
+		fmt.Println("sqlow " + VERSION)
 		os.Exit(0)
 	}
 

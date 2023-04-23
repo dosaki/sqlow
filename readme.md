@@ -9,6 +9,36 @@ Supported databases:
 * MariaDB / Mysql
 * PostgreSQL
 
+# Installation
+
+## From Package Manager
+### Snap
+
+### Homebrew
+```shell
+brew tap dosaki/sqlow
+brew install sqlow
+```
+
+## From github releases
+```shell
+sys_type=$(uname -s | tr '[:upper:]' '[:lower:]')
+sys_arch=$(uname -m | tr '[:upper:]' '[:lower:]')
+if [[ $sys_arch == "x86_64" ]]; then
+  sys_arch="amd64"
+fi
+curl -LJ https://github.com/dosaki/sqlow/releases/latest/download/$sys_type-$sys_arch.zip -o sqlow.zip && unzip sqlow.zip
+./sqlow --help # verify that it works
+```
+
+## From source
+```shell
+git clone git@github.com:dosaki/sqlow.git
+cd sqlow
+./build.sh --default --no-zip --output=./dist
+./dist/sqlow --help # verify that it works
+```
+
 # Usage
 
 Create a file like below:

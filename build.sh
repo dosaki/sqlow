@@ -18,7 +18,7 @@ if [[ "${GOOS}" == "windows" ]]; then
 fi
 
 DO_ALL=false
-VERSION=$(cat ./config/version.go | tail -1 | tr '"' ' ' | awk '{print $4}')
+VERSION=$(cat ./main.go | grep 'var VERSION' | tr '"' ' ' | awk '{print $4}')
 BUILD_ZIP=true
 OUTPUT_DIR="./dist/${GOOS}-${GOARCH}"
 
@@ -83,10 +83,7 @@ if [[ "${DO_ALL}" == "true" ]]; then
   ./build.sh --macos-m1 --version=${VERSION}
 else
   mkdir -p dist/${GOOS}-${GOARCH}
-  mv ./config/version.go ./config/version.tmp
-  cat ./config/version.tmp | sed "s/development/${VERSION} ${GOOS}\/${GOARCH}/g" > ./config/version.go
-  go build -o "${OUTPUT_DIR}/${EXECUTABLE_NAME}" main.go
-  mv ./config/version.tmp ./config/version.go
+  go build -o "${OUTPUT_DIR}/${EXECUTABLE_NAME}" --ldflags="-X \"main.VERSION=${VERSION} ${GOOS}/${GOARCH}\"" main.go
 
   if [[ "${BUILD_ZIP}" == "true" ]]; then
     pushd "${OUTPUT_DIR}/" > /dev/null 2>&1
