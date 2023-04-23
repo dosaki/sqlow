@@ -69,7 +69,6 @@ for i in "$@"; do
     shift
     ;;
   *)
-    usage
     echo "Unknown option ${i}"
     exit 1
     ;;
