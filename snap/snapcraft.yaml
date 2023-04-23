@@ -20,5 +20,5 @@ parts:
     plugin: go
     override-build: |
       VERSION="$(git describe --tags) $(go env GOOS)/$(go env GOARCH)"
-      go install --ldflags="-X \"main.VERSION=${VERSION}\" -linkmode=external" main.go
+      go install --ldflags="-X \"main.VERSION=${VERSION}\" -linkmode=external" ./...
 
