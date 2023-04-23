@@ -13,6 +13,9 @@ Supported databases:
 
 ## From Package Manager
 ### Snap
+```shell
+sudo snap install sqlow
+```
 
 ### Homebrew
 ```shell
