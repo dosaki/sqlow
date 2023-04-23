@@ -60,7 +60,7 @@ for i in "$@"; do
     VERSION="${i#*=}"
     shift
     ;;
-  --no-zip=*)
+  --no-zip)
     BUILD_ZIP="false"
     shift
     ;;
