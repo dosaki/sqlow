@@ -12,11 +12,16 @@ cd "${DIR}"
 
 EXECUTABLE_NAME="sqlow"
 ENGINE="all"
+TYPE="all"
 
 for i in "$@"; do
   case $i in
-  --engine)
+  --engine=*)
     ENGINE="${i#*=}"
+    shift
+    ;;
+  --type=*)
+    TYPE="${i#*=}"
     shift
     ;;
   --windows)
@@ -91,6 +96,17 @@ function matches_pattern() {
 }
 
 
+function dry_run_for_engine() {
+  engine="$1"
+  cd ${DIR}/tests/${engine}/ || exit 1
+  docker-compose up -d > /dev/null 2>&1
+  sleep 5
+  ${DIR}/dist/${GOOS}-${GOARCH}/${EXECUTABLE_NAME} -r -psqlow run ./migrations --dry-run > "output.dry-run.txt"
+  RESULTS="${RESULTS}\n$(compare_to_expected ${engine} 'dry-run')"
+  rm output*.txt
+  docker-compose down
+}
+
 function run_for_engine() {
   engine="$1"
   cd ${DIR}/tests/${engine}/ || exit 1
@@ -102,7 +118,7 @@ function run_for_engine() {
   run_sql "${engine}" "select * from latest_upgrade;" "output.always.txt"
   RESULTS="${RESULTS}\n$(compare_to_expected ${engine} 'inline')"
   RESULTS="${RESULTS}\n$(compare_to_expected ${engine} 'files')"
-  RESULTS="${RESULTS}\n$(matches_pattern ${engine} 'always' "[0-9]{4}-(10|11|12|0[1-9])-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")"
+  RESULTS="${RESULTS}\n$(matches_pattern ${engine} 'always' "([0-9]{4}-(10|11|12|0[1-9])-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}).*(\|\s*1)")"
   rm output*.txt
   docker-compose down
 }
@@ -111,10 +127,21 @@ function run_for_engine() {
 ./build.sh --${OPTION}
 
 if [[ "${ENGINE}" == "all" ]]; then
-  run_for_engine "maria"
-  run_for_engine "postgres"
+  if [[ "${TYPE}" == "all" ]] || [[ "${TYPE}" == "normal" ]]; then
+    run_for_engine "maria"
+    run_for_engine "postgres"
+  fi
+  if [[ "${TYPE}" == "all" ]] || [[ "${TYPE}" == "dry" ]]; then
+    dry_run_for_engine "maria"
+    dry_run_for_engine "postgres"
+  fi
 else
-  run_for_engine "${ENGINE}"
+  if [[ "${TYPE}" == "all" ]] || [[ "${TYPE}" == "normal" ]]; then
+    run_for_engine "${ENGINE}"
+  fi
+  if [[ "${TYPE}" == "all" ]] || [[ "${TYPE}" == "dry" ]]; then
+    dry_run_for_engine "${ENGINE}"
+  fi
 fi
 
 echo -e "${RESULTS}"

@@ -2,6 +2,6 @@ migrations:
   - description: Timestamp upgrade
     check: SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename ='latest_upgrade';
     onNoResults:
-      - CREATE TABLE latest_upgrade (date_time TIMESTAMP);
-      - INSERT INTO latest_upgrade (date_time) VALUES (now());
-    always: update latest_upgrade set date_time = now();
+      - CREATE TABLE latest_upgrade (date_time TIMESTAMP, times_executed integer);
+      - INSERT INTO latest_upgrade (date_time, times_executed) VALUES (now(), 0);
+    always: update latest_upgrade set date_time = now(), times_executed = times_executed+1;

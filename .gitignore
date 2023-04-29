@@ -2,3 +2,4 @@
 dist
 output*.txt
 .DS_Store
+.go.env

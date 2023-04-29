@@ -59,7 +59,7 @@ func (c *Config) WithOverrides(engine, host, port, schema, username, password, o
 	return config
 }
 
-func (c *Config) MakeDriver() database.Driver {
+func (c *Config) MakeDriver(isDryRun bool) database.Driver {
 	log.Printf("Making %s driver...\n", c.Engine)
 	var options []string
 	for key, value := range c.Options {
@@ -73,6 +73,7 @@ func (c *Config) MakeDriver() database.Driver {
 		Username: c.Username,
 		Password: c.Password,
 		Options:  options,
+		IsDryRun: isDryRun,
 	}
 }
 

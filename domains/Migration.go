@@ -1,6 +1,7 @@
 package domains
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"sqlow/database"
@@ -59,8 +60,15 @@ func (c *Migration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 func (c *Migration) RunCheck(driver database.Driver) (bool, bool) {
 	for _, check := range c.Check {
+		if driver.IsDryRun {
+			driver.Savepoint()
+		}
 		ok, hasRows := driver.QueryPasses(check)
 		if !ok {
+			if driver.IsDryRun {
+				log.Println("Loading savepoint...")
+				driver.Loadpoint()
+			}
 			return false, false
 		}
 		if !hasRows {
@@ -71,25 +79,27 @@ func (c *Migration) RunCheck(driver database.Driver) (bool, bool) {
 	return true, true
 }
 
-func (c *Migration) Run(driver database.Driver) {
+func (c *Migration) Collect(driver database.Driver) []string {
+	var sqlToRun []string
 	ok, hasRows := c.RunCheck(driver)
 	if !ok && (len(c.OnFail) > 0) {
-		err := driver.ExecuteBatch(c.OnFail)
-		helpers.CheckError(err)
+		sqlToRun = append(sqlToRun, c.OnFail...)
 	}
 	if ok && (len(c.OnSuccess) > 0) {
-		err := driver.ExecuteBatch(c.OnSuccess)
-		helpers.CheckError(err)
+		sqlToRun = append(sqlToRun, c.OnSuccess...)
 	}
 
 	if ok && !hasRows && (len(c.OnNoResults) > 0) {
-		err := driver.ExecuteBatch(c.OnNoResults)
-		helpers.CheckError(err)
+		sqlToRun = append(sqlToRun, c.OnNoResults...)
 	}
 	if ok && hasRows && (len(c.OnResults) > 0) {
-		err := driver.ExecuteBatch(c.OnResults)
-		helpers.CheckError(err)
+		sqlToRun = append(sqlToRun, c.OnResults...)
 	}
+
+	if len(c.Always) > 0 {
+		sqlToRun = append(sqlToRun, c.Always...)
+	}
+	return sqlToRun
 }
 
 func (c *Migration) ResolveFiles(dir string) {
@@ -145,7 +155,7 @@ func getValue(field string, unmarshal func(interface{}) error) []string {
 		if val, ok := miface[field]; ok {
 			for _, v := range val.([]interface{}) {
 				if str, ok := v.(string); ok {
-					if strings.HasSuffix(str, ";") {
+					if strings.HasSuffix(str, ";") || strings.HasSuffix(str, ";\n") {
 						sstr = append(sstr, str)
 					} else {
 						sstr = append(sstr, str+";")

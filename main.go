@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/docopt/docopt.go"
+	"golang.org/x/exp/slices"
 	"log"
 	"os"
 	"sqlow/config"
@@ -24,6 +25,7 @@ Usage:
 Options:
   -h --help                 Show this Help.
   -r --recursive            Traverse the directory structure for .yml or .yaml files.
+  -d --dry-run              Print the non-check SQL statements that will be run (this will run the migrations, but will roll them back).
   -c --config=<configPath>  Path to config [default: ./config.yml].
   -e --engine=<engine>      Database engine (overrides config).
   -h --host=<host>          Database host (overrides config).
@@ -48,6 +50,7 @@ Examples:
 
 	path, _ := arguments.String("<path>")
 	isRecursive, _ := arguments.Bool("--recursive")
+	isDryRun, _ := arguments.Bool("--dry-run")
 	configPath, _ := arguments.String("--config")
 	engine := arguments["--engine"]
 	host := arguments["--host"]
@@ -57,10 +60,17 @@ Examples:
 	password := arguments["--password"]
 	options := arguments["--options"]
 
-	log.Println("Started.")
-	config := config.FromYAML(configPath).WithOverrides(engine, host, port, schema, username, password, options)
+	log.Println("Loading config...")
+	configuration := config.FromYAML(configPath).WithOverrides(engine, host, port, schema, username, password, options)
+	if slices.Contains([]string{"maria", "mariadb", "mysql"}, configuration.Engine) && isDryRun {
+		log.Println("MariaDB and MySQL don't support dry-runs as they can implicitly end transactions!")
+		log.Println("For more information, see:")
+		log.Println("* https://mariadb.com/kb/en/sql-statements-that-cause-an-implicit-commit/")
+		log.Fatalln("* https://dev.mysql.com/doc/refman/8.0/en/implicit-commit.html")
+	}
 
-	driver := config.MakeDriver()
+	log.Println("Started.")
+	driver := configuration.MakeDriver(isDryRun)
 	driver.Connect()
 	defer driver.Close()
 	files := io.GetAllFiles(path, isRecursive)

@@ -1,0 +1,44 @@
+
+-- Ensure that activities exists and is initialised
+CREATE TABLE activities (
+    id       SERIAL PRIMARY KEY,
+    type     VARCHAR(255),
+    name     VARCHAR(255)
+);
+INSERT INTO activities (type, name) VALUES ('movement', 'Migrate South');
+INSERT INTO activities (type, name) VALUES ('movement', 'Migrate North');
+
+-- Ensure that migration_month exists for activities
+ALTER TABLE activities ADD COLUMN migration_month VARCHAR(9);
+UPDATE activities SET migration_month = 'September' where id = 1;
+UPDATE activities SET migration_month = 'March' where id = 2;
+ALTER TABLE activities ALTER COLUMN migration_month SET NOT NULL;
+
+-- Ensure that task_types exists and is initialised
+CREATE TABLE task_types (
+  id          SERIAL PRIMARY KEY,
+  category    VARCHAR(255),
+  name        VARCHAR(255)
+);
+
+INSERT INTO task_types (category, name) VALUES ('drink', 'Make Tea');
+INSERT INTO task_types (category, name) VALUES ('drink', 'Make Juice');
+INSERT INTO task_types (category, name) VALUES ('food', 'Make Pizza');
+INSERT INTO task_types (category, name) VALUES ('food', 'Make Sandwich');
+INSERT INTO task_types (category, name) VALUES ('food', 'Make Burger');
+
+-- Ensure that description exists for task_types
+ALTER TABLE task_types ADD COLUMN description VARCHAR(1023);
+UPDATE task_types SET description = CONCAT('Task type for ', name);
+ALTER TABLE task_types ALTER COLUMN description SET NOT NULL;
+
+-- Ensure that task_types does not have a category
+ALTER TABLE task_types DROP COLUMN category;
+
+-- Ensure the "Make Coffee" task exists
+INSERT INTO task_types (name, description) VALUES ('Make Coffee', 'Make some delicious black coffee');
+
+-- Timestamp upgrade
+CREATE TABLE latest_upgrade (date_time TIMESTAMP, times_executed integer);
+INSERT INTO latest_upgrade (date_time, times_executed) VALUES (now(), 0);
+update latest_upgrade set date_time = now(), times_executed = times_executed+1;

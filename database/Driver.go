@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
@@ -11,17 +12,25 @@ import (
 )
 
 type Driver struct {
-	Engine     string
-	Host       string
-	Port       string
-	Schema     string
-	Username   string
-	Password   string
-	Options    []string
-	connection *sql.DB
+	Engine      string
+	Host        string
+	Port        string
+	Schema      string
+	Username    string
+	Password    string
+	Options     []string
+	IsDryRun    bool
+	connection  *sql.DB
+	transaction *sql.Tx
+}
+
+type Conn interface {
+	Query(query string, args ...any) (*sql.Rows, error)
+	Exec(query string, args ...any) (sql.Result, error)
 }
 
 func (d *Driver) Connect() {
+	d.transaction = nil
 	switch d.Engine {
 	case "postgres":
 		d.connection = getPostgresConnection(*d)
@@ -34,20 +43,52 @@ func (d *Driver) Connect() {
 	if !ok || !hasRows {
 		log.Fatalf("Unable to connect to %s database", d.Engine)
 	}
+	if d.IsDryRun {
+		log.Println("Beginning transaction...")
+		d.BeginTransaction()
+	}
+}
+
+func (d *Driver) BeginTransaction() {
+	tx, err := d.connection.BeginTx(context.Background(), nil)
+	helpers.CheckError(err)
+	d.transaction = tx
+}
+
+func (d *Driver) RollbackTransaction() {
+	err := d.transaction.Rollback()
+	helpers.CheckWarn(err)
+}
+
+func (d *Driver) Savepoint() {
+	_, err := d.conn().Exec("SAVEPOINT sqlow_save;")
+	helpers.CheckError(err)
+}
+
+func (d *Driver) Loadpoint() {
+	_, err := d.conn().Exec("ROLLBACK TO sqlow_save;")
+	helpers.CheckError(err)
+}
+
+func (d *Driver) conn() Conn {
+	if d.transaction == nil {
+		return d.connection
+	}
+	return d.transaction
 }
 
 func (d *Driver) QueryPasses(sql string) (bool, bool) {
-	rows, err := d.connection.Query(sql)
+	rows, err := d.conn().Query(sql)
 	return err == nil, err == nil && rows.Next()
 }
 
 func (d *Driver) ExecuteBatch(sqls []string) error {
 	if d.Engine == "postgres" {
-		_, err := d.connection.Exec(strings.Join(sqls, ""))
+		_, err := d.conn().Exec(strings.Join(sqls, ""))
 		return err
 	} else {
 		for _, sql := range sqls {
-			if _, err := d.connection.Exec(sql); err != nil {
+			if _, err := d.conn().Exec(sql); err != nil {
 				return err
 			}
 		}
@@ -56,6 +97,10 @@ func (d *Driver) ExecuteBatch(sqls []string) error {
 }
 
 func (d *Driver) Close() {
+	if d.IsDryRun {
+		log.Println("Rolling back transaction...")
+		d.RollbackTransaction()
+	}
 	log.Printf("Closing %s driver...\n", d.Engine)
 	if d.connection != nil {
 		err := d.connection.Close()

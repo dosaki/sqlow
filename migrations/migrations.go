@@ -1,6 +1,7 @@
 package migrations
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"log"
 	"os"
@@ -27,8 +28,24 @@ func ResolveMigrations(filePath string) []domains.Migration {
 }
 
 func RunMigrations(migrations []domains.Migration, driver database.Driver) {
+	var sqlToRun []string
 	for _, migration := range migrations {
-		log.Printf("  - %s\n", migration.Description)
-		migration.Run(driver)
+		migrationSQL := migration.Collect(driver)
+		if len(migrationSQL) > 0 {
+			if driver.IsDryRun {
+				sqlToRun = append(sqlToRun, fmt.Sprintf("\n-- %s", migration.Description))
+			} else {
+				log.Printf("  - %s\n", migration.Description)
+			}
+			sqlToRun = append(sqlToRun, migrationSQL...)
+		}
+		err := driver.ExecuteBatch(migrationSQL)
+		helpers.CheckError(err)
+	}
+
+	if driver.IsDryRun {
+		for _, sql := range sqlToRun {
+			fmt.Println(sql)
+		}
 	}
 }
