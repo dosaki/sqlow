@@ -29,6 +29,13 @@ type Conn interface {
 	Exec(query string, args ...any) (sql.Result, error)
 }
 
+func (d *Driver) AsString() string {
+	if d.Options == nil {
+		return fmt.Sprintf("%s://%s:****@%s:%s/%s", d.Engine, d.Username, d.Host, d.Port, d.Schema)
+	}
+	return fmt.Sprintf("%s://%s:****@%s:%s/%s?%s", d.Engine, d.Username, d.Host, d.Port, d.Schema, strings.Join(d.Options, "&"))
+}
+
 func (d *Driver) Connect() {
 	d.transaction = nil
 	switch d.Engine {

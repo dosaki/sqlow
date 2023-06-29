@@ -66,7 +66,7 @@ You can also check which migrations are run*:
 ```shell
 sqlow -pSup4rS@f3P@ssw0rd --dry-run run ./migration.yml
 ```
-W
+
 _* Dry-runs work by running everything under a transaction that is then rolled back.
 This does not work for
 MariaDB ([Why?](https://mariadb.com/kb/en/sql-statements-that-cause-an-implicit-commit/))

@@ -50,6 +50,9 @@ func (c *Config) WithOverrides(engine, host, port, schema, username, password, o
 	}
 	if options != nil {
 		cliOptions := strings.Split(options.(string), ",")
+		if c.Options == nil {
+			c.Options = make(map[string]string)
+		}
 		for _, optionPair := range cliOptions {
 			splitPair := strings.Split(optionPair, ":")
 			c.Options[splitPair[0]] = splitPair[1]
@@ -65,7 +68,8 @@ func (c *Config) MakeDriver(isDryRun bool) database.Driver {
 	for key, value := range c.Options {
 		options = append(options, fmt.Sprintf("%s=%s", key, value))
 	}
-	return database.Driver{
+
+	driver := database.Driver{
 		Engine:   c.Engine,
 		Host:     c.Host,
 		Port:     c.Port,
@@ -75,6 +79,8 @@ func (c *Config) MakeDriver(isDryRun bool) database.Driver {
 		Options:  options,
 		IsDryRun: isDryRun,
 	}
+	log.Printf("Created driver: %s\n", driver.AsString())
+	return driver
 }
 
 func FromYAML(f string) *Config {
