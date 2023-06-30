@@ -50,12 +50,12 @@ func (c *Config) WithOverrides(engine, host, port, schema, username, password, o
 	}
 	if options != nil {
 		cliOptions := strings.Split(options.(string), ",")
-		if c.Options == nil {
-			c.Options = make(map[string]string)
+		if config.Options == nil {
+			config.Options = make(map[string]string)
 		}
 		for _, optionPair := range cliOptions {
 			splitPair := strings.Split(optionPair, ":")
-			c.Options[splitPair[0]] = splitPair[1]
+			config.Options[splitPair[0]] = splitPair[1]
 		}
 	}
 	log.Println("Loaded CLI options.")
